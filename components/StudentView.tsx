@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { QuestionPaper, AnswerSubmission, ExamSession, StudentProfile, SUPPORTED_GRADES, Submission } from '../types';
 import SpecializedKeyboard from './SpecializedKeyboard';
 
@@ -17,7 +17,7 @@ const StudentView: React.FC<StudentViewProps> = ({ papers, activeStudent, onLogi
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
   const [isStarted, setIsStarted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showSubmitModal, setShowSubmitModal] = useState(false); // New Modal State
+  const [showSubmitModal, setShowSubmitModal] = useState(false); 
   const [showMobileReference, setShowMobileReference] = useState(false);
   const [loginName, setLoginName] = useState('');
   const [loginClass, setLoginClass] = useState('');
@@ -30,7 +30,42 @@ const StudentView: React.FC<StudentViewProps> = ({ papers, activeStudent, onLogi
     activeStudentRef.current = activeStudent;
   }, [activeSession, activeStudent]);
 
-  // Unified Submission Processor
+  // Handle PDF/Image blob conversion to fix display issues
+  const referenceUrl = useMemo(() => {
+    const data = activeSession?.paper.pdfData;
+    if (!data) return null;
+
+    // If it's already an image data URL, we can use it directly
+    if (data.startsWith('data:image')) return data;
+
+    // If it's a PDF data URL, convert to Blob for more reliable rendering
+    if (data.startsWith('data:application/pdf')) {
+      try {
+        const base64 = data.split(',')[1];
+        const binaryString = window.atob(base64);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        const blob = new Blob([bytes], { type: 'application/pdf' });
+        return URL.createObjectURL(blob);
+      } catch (e) {
+        console.error("Failed to create PDF blob URL", e);
+        return data; // Fallback to raw data URI
+      }
+    }
+    return data;
+  }, [activeSession?.paper.pdfData]);
+
+  // Clean up blob URL to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (referenceUrl && referenceUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(referenceUrl);
+      }
+    };
+  }, [referenceUrl]);
+
   const processSubmission = async (session: ExamSession, student: StudentProfile, isAuto: boolean) => {
       setIsSubmitting(true);
       try {
@@ -74,7 +109,6 @@ const StudentView: React.FC<StudentViewProps> = ({ papers, activeStudent, onLogi
   };
 
   const confirmSubmit = async () => {
-    // Use refs to ensure we capture the latest state even if closure is stale
     const session = activeSession || activeSessionRef.current;
     const student = activeStudent || activeStudentRef.current;
 
@@ -210,11 +244,9 @@ const StudentView: React.FC<StudentViewProps> = ({ papers, activeStudent, onLogi
     }
   };
 
-  // Helper to calculate stats
   const getSessionStats = () => {
       if (!activeSession) return { total: 0, answered: 0, skipped: 0 };
       const total = activeSession.paper.questions.length;
-      // Count answered if text is not empty OR image exists
       const answered = Object.values(activeSession.answers).filter((a: AnswerSubmission) => a.answerText.trim() !== '' || a.imageUri).length;
       return { total, answered, skipped: total - answered };
   };
@@ -298,22 +330,33 @@ const StudentView: React.FC<StudentViewProps> = ({ papers, activeStudent, onLogi
   const currentQ = activeSession!.paper.questions[currentQuestionIndex];
   const currentAnswer = activeSession!.answers[currentQ.id];
   const formatTime = (seconds: number) => `${Math.floor(seconds / 60)}:${(seconds % 60).toString().padStart(2, '0')}`;
-  const hasPDF = !!activeSession?.paper.pdfData;
-  const isPDFImage = hasPDF && activeSession?.paper.pdfData?.startsWith('data:image');
   
+  const isPDFImage = activeSession?.paper.pdfData?.startsWith('data:image');
   const refersToDiagram = currentQ.text.toLowerCase().includes('diagram') || currentQ.text.toLowerCase().includes('figure') || currentQ.text.toLowerCase().includes('refer to');
 
   const ReferenceViewer = () => {
-    if (!hasPDF) return null;
+    if (!referenceUrl) return (
+      <div className="w-full h-full flex items-center justify-center text-slate-500 bg-slate-900/50">
+        <p className="font-bold text-xs uppercase tracking-widest">Reference Not Available</p>
+      </div>
+    );
+
     if (isPDFImage) {
-      return <img src={activeSession!.paper.pdfData} className="w-full h-full object-contain bg-white" alt="Question Paper Reference" />;
+      return <img src={referenceUrl} className="w-full h-full object-contain bg-white" alt="Question Paper Reference" />;
     }
+
     return (
-      <iframe 
-        src={activeSession!.paper.pdfData} 
+      <object
+        data={referenceUrl}
+        type="application/pdf"
         className="w-full h-full rounded-2xl bg-white"
-        title="Exam Paper PDF"
-      />
+      >
+        <iframe 
+          src={referenceUrl} 
+          className="w-full h-full rounded-2xl bg-white"
+          title="Exam Paper Reference"
+        />
+      </object>
     );
   };
 
@@ -321,7 +364,6 @@ const StudentView: React.FC<StudentViewProps> = ({ papers, activeStudent, onLogi
 
   return (
     <div className="flex flex-col h-[calc(100vh-5rem)] bg-slate-50 relative overflow-hidden">
-      {/* Submit Confirmation Modal */}
       {showSubmitModal && (
         <div className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
            <div className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl scale-100 animate-in zoom-in-95 duration-200">
@@ -378,7 +420,7 @@ const StudentView: React.FC<StudentViewProps> = ({ papers, activeStudent, onLogi
           <div className="bg-indigo-600 text-white w-10 h-10 rounded-lg flex items-center justify-center font-black">{currentQuestionIndex + 1}</div>
           <div className="flex flex-col">
              <h2 className="text-lg font-black text-slate-900 leading-tight line-clamp-1">{activeSession?.paper.title}</h2>
-             {hasPDF && (
+             {referenceUrl && (
                <button 
                  onClick={() => setShowMobileReference(true)}
                  className={`md:hidden text-left text-[9px] px-2 py-1 rounded font-bold uppercase tracking-widest mt-1 flex items-center gap-1 transition-all ${refersToDiagram ? 'bg-indigo-600 text-white animate-pulse' : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100'}`}
@@ -387,7 +429,7 @@ const StudentView: React.FC<StudentViewProps> = ({ papers, activeStudent, onLogi
                  {refersToDiagram ? 'View Required Diagram' : 'View Question Paper'}
                </button>
              )}
-             {hasPDF && <span className="hidden md:inline-block text-[9px] bg-slate-100 px-2 py-0.5 rounded text-slate-500 font-bold uppercase tracking-widest mt-1">Split View Active</span>}
+             {referenceUrl && <span className="hidden md:inline-block text-[9px] bg-slate-100 px-2 py-0.5 rounded text-slate-500 font-bold uppercase tracking-widest mt-1">Split View Active</span>}
           </div>
         </div>
         <div className="flex items-center gap-6">
@@ -410,7 +452,7 @@ const StudentView: React.FC<StudentViewProps> = ({ papers, activeStudent, onLogi
       </div>
 
       <div className={`flex flex-col md:flex-row flex-1 overflow-hidden relative`}>
-         {hasPDF && (
+         {referenceUrl && (
             <div className="flex-1 bg-slate-800 p-4 hidden md:block border-r border-slate-200 overflow-hidden relative group">
               <ReferenceViewer />
               <div className="absolute top-6 right-6 bg-black/50 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
@@ -419,7 +461,7 @@ const StudentView: React.FC<StudentViewProps> = ({ papers, activeStudent, onLogi
             </div>
          )}
          
-         {showMobileReference && hasPDF && (
+         {showMobileReference && referenceUrl && (
            <div className="fixed inset-0 z-[60] bg-slate-900 flex flex-col md:hidden">
              <div className="flex items-center justify-between p-4 bg-slate-800 text-white shrink-0">
                <h3 className="font-bold">Question Paper Reference</h3>
