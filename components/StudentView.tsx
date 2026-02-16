@@ -35,8 +35,10 @@ const StudentView: React.FC<StudentViewProps> = ({ papers, activeStudent, onLogi
     const data = activeSession?.paper.pdfData;
     if (!data) return null;
 
+    // Direct Image Handling
     if (data.startsWith('data:image')) return data;
 
+    // PDF Handling - Convert to Blob for better iframe support
     if (data.startsWith('data:application/pdf')) {
       try {
         const base64 = data.split(',')[1];
@@ -49,9 +51,23 @@ const StudentView: React.FC<StudentViewProps> = ({ papers, activeStudent, onLogi
         return URL.createObjectURL(blob);
       } catch (e) {
         console.error("Failed to create PDF blob URL", e);
-        return data; 
+        return data; // Fallback to raw data URI
       }
     }
+    
+    // If it's just a raw base64 string without prefix (emergency fallback)
+    if (!data.startsWith('data:')) {
+       try {
+         const binaryString = window.atob(data);
+         const bytes = new Uint8Array(binaryString.length);
+         for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+         }
+         const blob = new Blob([bytes], { type: 'application/pdf' });
+         return URL.createObjectURL(blob);
+       } catch(e) { return null; }
+    }
+
     return data;
   }, [activeSession?.paper.pdfData]);
 
@@ -331,7 +347,7 @@ const StudentView: React.FC<StudentViewProps> = ({ papers, activeStudent, onLogi
     if (!referenceUrl) return (
       <div className="w-full h-full flex flex-col items-center justify-center text-slate-500 bg-slate-900/50 p-8 text-center">
         <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mb-4 opacity-20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-        <p className="font-bold text-xs uppercase tracking-widest">Question paper not attached to this exam.</p>
+        <p className="font-bold text-xs uppercase tracking-widest">Question paper not available.</p>
       </div>
     );
 
@@ -345,6 +361,7 @@ const StudentView: React.FC<StudentViewProps> = ({ papers, activeStudent, onLogi
 
     return (
       <iframe 
+        key={referenceUrl} // Critical: forces iframe refresh on paper change
         src={referenceUrl} 
         className="w-full h-full bg-white rounded-lg shadow-inner"
         title="Exam Paper PDF"
@@ -414,10 +431,10 @@ const StudentView: React.FC<StudentViewProps> = ({ papers, activeStudent, onLogi
                     href={referenceUrl} 
                     target="_blank" 
                     rel="noopener noreferrer"
-                    className="text-[9px] px-2 py-1 rounded font-bold uppercase tracking-widest mt-1 bg-slate-900 text-white flex items-center gap-1"
+                    className="text-[9px] px-2 py-1 rounded font-bold uppercase tracking-widest mt-1 bg-slate-900 text-white flex items-center gap-1 shadow-sm hover:scale-105 transition-transform"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-2 w-2" viewBox="0 0 20 20" fill="currentColor"><path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z" /><path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z" /></svg>
-                    Full Screen Paper
+                    FULL SCREEN PDF
                   </a>
                )}
              </div>
@@ -443,10 +460,25 @@ const StudentView: React.FC<StudentViewProps> = ({ papers, activeStudent, onLogi
          {/* Split Screen Paper Viewer */}
          <div className="flex-1 bg-slate-800 p-4 hidden md:block border-r border-slate-200 overflow-hidden relative group">
             <div className="absolute top-6 left-6 z-10 bg-indigo-600 text-white text-[10px] font-black px-3 py-1.5 rounded-full shadow-lg uppercase tracking-widest border border-white/20">
-               Question Paper Reference
+               QUESTION PAPER REFERENCE
             </div>
-            <div className="w-full h-full rounded-2xl overflow-hidden bg-slate-900/50 backdrop-blur-sm">
+            {referenceUrl && (
+              <a 
+                href={referenceUrl} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="absolute top-6 right-6 z-10 bg-black/60 hover:bg-black text-white text-[9px] font-black px-3 py-1.5 rounded-full shadow-lg uppercase tracking-widest border border-white/10 transition-all"
+              >
+                OPEN PDF IN NEW TAB
+              </a>
+            )}
+            <div className="w-full h-full rounded-2xl overflow-hidden bg-slate-900/50 backdrop-blur-sm relative">
                <ReferenceViewer />
+               {/* Loader for slow rendering */}
+               <div className="absolute inset-0 -z-10 flex flex-col items-center justify-center text-slate-600">
+                  <div className="w-8 h-8 border-4 border-slate-700 border-t-indigo-500 rounded-full animate-spin mb-4" />
+                  <span className="text-[10px] font-black uppercase">Loading Document...</span>
+               </div>
             </div>
          </div>
          
@@ -457,8 +489,11 @@ const StudentView: React.FC<StudentViewProps> = ({ papers, activeStudent, onLogi
                <h3 className="font-bold">Exam Reference</h3>
                <button onClick={() => setShowMobileReference(false)} className="bg-white/10 p-2 rounded-full"><svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
              </div>
-             <div className="flex-1 overflow-hidden bg-black">
+             <div className="flex-1 overflow-hidden bg-black relative">
                <ReferenceViewer />
+               <div className="absolute bottom-6 left-6 right-6">
+                  <a href={referenceUrl} target="_blank" rel="noopener noreferrer" className="w-full block text-center bg-indigo-600 text-white py-4 rounded-xl font-black uppercase text-xs shadow-2xl">Open PDF Externally</a>
+               </div>
              </div>
            </div>
          )}
