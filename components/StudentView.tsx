@@ -30,15 +30,13 @@ const StudentView: React.FC<StudentViewProps> = ({ papers, activeStudent, onLogi
     activeStudentRef.current = activeStudent;
   }, [activeSession, activeStudent]);
 
-  // Handle PDF/Image blob conversion to fix display issues
+  // Handle PDF/Image blob conversion for reliable display
   const referenceUrl = useMemo(() => {
     const data = activeSession?.paper.pdfData;
     if (!data) return null;
 
-    // If it's already an image data URL, we can use it directly
     if (data.startsWith('data:image')) return data;
 
-    // If it's a PDF data URL, convert to Blob for more reliable rendering
     if (data.startsWith('data:application/pdf')) {
       try {
         const base64 = data.split(',')[1];
@@ -51,13 +49,12 @@ const StudentView: React.FC<StudentViewProps> = ({ papers, activeStudent, onLogi
         return URL.createObjectURL(blob);
       } catch (e) {
         console.error("Failed to create PDF blob URL", e);
-        return data; // Fallback to raw data URI
+        return data; 
       }
     }
     return data;
   }, [activeSession?.paper.pdfData]);
 
-  // Clean up blob URL to prevent memory leaks
   useEffect(() => {
     return () => {
       if (referenceUrl && referenceUrl.startsWith('blob:')) {
@@ -111,13 +108,7 @@ const StudentView: React.FC<StudentViewProps> = ({ papers, activeStudent, onLogi
   const confirmSubmit = async () => {
     const session = activeSession || activeSessionRef.current;
     const student = activeStudent || activeStudentRef.current;
-
-    if (!session || !student) {
-        alert("Session error. Please reload.");
-        setShowSubmitModal(false);
-        return;
-    }
-
+    if (!session || !student) return;
     await processSubmission(session, student, false);
   };
 
@@ -302,10 +293,10 @@ const StudentView: React.FC<StudentViewProps> = ({ papers, activeStudent, onLogi
               }
 
               return (
-                <div key={paper.id} className={`bg-slate-50 border border-slate-200 rounded-[1.5rem] p-6 flex justify-between items-center ${isLocked ? 'opacity-70 grayscale-[0.5]' : ''}`}>
+                <div key={paper.id} className={`bg-white border border-slate-200 rounded-[1.5rem] p-6 flex justify-between items-center ${isLocked ? 'opacity-70 grayscale-[0.5]' : 'hover:border-indigo-300 transition-colors shadow-sm'}`}>
                   <div>
                     <h3 className="text-xl font-black text-slate-800">{paper.title}</h3>
-                    <p className="text-slate-500">{paper.subject} • {paper.duration} Min</p>
+                    <p className="text-slate-500 text-sm">{paper.subject} • {paper.duration} Min</p>
                     {statusLabel && <p className="text-[10px] font-black uppercase tracking-widest text-red-500 mt-2">{statusLabel}</p>}
                   </div>
                   <button 
@@ -313,13 +304,15 @@ const StudentView: React.FC<StudentViewProps> = ({ papers, activeStudent, onLogi
                     onClick={() => startExam(paper)} 
                     className={`px-8 py-3 rounded-xl font-black uppercase tracking-widest text-[10px] ${isLocked ? 'bg-slate-300 text-slate-500 cursor-not-allowed' : 'bg-indigo-600 text-white hover:bg-indigo-700'}`}
                   >
-                    {isLocked ? 'Locked' : 'Attempt'}
+                    {isLocked ? 'Locked' : 'Attempt Exam'}
                   </button>
                 </div>
               );
             })}
             {filteredPapers.length === 0 && (
-               <div className="text-center py-10 text-slate-400 font-medium">No papers assigned for your class yet.</div>
+               <div className="text-center py-20 bg-white rounded-3xl border-2 border-dashed border-slate-200 text-slate-400 font-medium">
+                  No papers assigned for your class yet.
+               </div>
             )}
           </div>
         </div>
@@ -336,27 +329,26 @@ const StudentView: React.FC<StudentViewProps> = ({ papers, activeStudent, onLogi
 
   const ReferenceViewer = () => {
     if (!referenceUrl) return (
-      <div className="w-full h-full flex items-center justify-center text-slate-500 bg-slate-900/50">
-        <p className="font-bold text-xs uppercase tracking-widest">Reference Not Available</p>
+      <div className="w-full h-full flex flex-col items-center justify-center text-slate-500 bg-slate-900/50 p-8 text-center">
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mb-4 opacity-20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+        <p className="font-bold text-xs uppercase tracking-widest">Question paper not attached to this exam.</p>
       </div>
     );
 
     if (isPDFImage) {
-      return <img src={referenceUrl} className="w-full h-full object-contain bg-white" alt="Question Paper Reference" />;
+      return (
+        <div className="w-full h-full flex items-center justify-center bg-slate-200 overflow-auto p-4">
+           <img src={referenceUrl} className="max-w-full shadow-2xl rounded-lg" alt="Exam Reference" />
+        </div>
+      );
     }
 
     return (
-      <object
-        data={referenceUrl}
-        type="application/pdf"
-        className="w-full h-full rounded-2xl bg-white"
-      >
-        <iframe 
-          src={referenceUrl} 
-          className="w-full h-full rounded-2xl bg-white"
-          title="Exam Paper Reference"
-        />
-      </object>
+      <iframe 
+        src={referenceUrl} 
+        className="w-full h-full bg-white rounded-lg shadow-inner"
+        title="Exam Paper PDF"
+      />
     );
   };
 
@@ -384,30 +376,18 @@ const StudentView: React.FC<StudentViewProps> = ({ papers, activeStudent, onLogi
                  </div>
               </div>
 
-              {stats.skipped > 0 ? (
-                 <div className="bg-amber-50 text-amber-800 p-4 rounded-xl mb-6 text-xs font-bold flex items-start gap-3">
-                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" /></svg>
-                   <p>You have {stats.skipped} unanswered questions. Are you sure you want to submit?</p>
-                 </div>
-              ) : (
-                 <div className="bg-green-50 text-green-800 p-4 rounded-xl mb-6 text-xs font-bold text-center">
-                   You have answered all questions. Ready to submit!
-                 </div>
-              )}
-
               <div className="flex gap-3">
                  <button 
                    onClick={() => setShowSubmitModal(false)}
-                   className="flex-1 py-3 rounded-xl font-bold text-xs uppercase tracking-widest bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors"
+                   className="flex-1 py-3 rounded-xl font-bold text-xs uppercase tracking-widest bg-slate-100 text-slate-600 hover:bg-slate-200"
                  >
                    Return
                  </button>
                  <button 
                    onClick={confirmSubmit}
                    disabled={isSubmitting}
-                   className="flex-1 py-3 rounded-xl font-black text-xs uppercase tracking-widest bg-indigo-600 text-white hover:bg-indigo-700 shadow-lg shadow-indigo-200 transition-colors flex items-center justify-center gap-2"
+                   className="flex-1 py-3 rounded-xl font-black text-xs uppercase tracking-widest bg-indigo-600 text-white hover:bg-indigo-700 shadow-lg shadow-indigo-200 flex items-center justify-center gap-2"
                  >
-                   {isSubmitting && <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
                    {isSubmitting ? 'Sending...' : 'Confirm'}
                  </button>
               </div>
@@ -420,16 +400,27 @@ const StudentView: React.FC<StudentViewProps> = ({ papers, activeStudent, onLogi
           <div className="bg-indigo-600 text-white w-10 h-10 rounded-lg flex items-center justify-center font-black">{currentQuestionIndex + 1}</div>
           <div className="flex flex-col">
              <h2 className="text-lg font-black text-slate-900 leading-tight line-clamp-1">{activeSession?.paper.title}</h2>
-             {referenceUrl && (
-               <button 
-                 onClick={() => setShowMobileReference(true)}
-                 className={`md:hidden text-left text-[9px] px-2 py-1 rounded font-bold uppercase tracking-widest mt-1 flex items-center gap-1 transition-all ${refersToDiagram ? 'bg-indigo-600 text-white animate-pulse' : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100'}`}
-               >
-                 <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
-                 {refersToDiagram ? 'View Required Diagram' : 'View Question Paper'}
-               </button>
-             )}
-             {referenceUrl && <span className="hidden md:inline-block text-[9px] bg-slate-100 px-2 py-0.5 rounded text-slate-500 font-bold uppercase tracking-widest mt-1">Split View Active</span>}
+             <div className="flex items-center gap-2">
+               {referenceUrl && (
+                  <button 
+                    onClick={() => setShowMobileReference(true)}
+                    className={`md:hidden text-[9px] px-2 py-1 rounded font-bold uppercase tracking-widest mt-1 flex items-center gap-1 transition-all ${refersToDiagram ? 'bg-indigo-600 text-white animate-pulse' : 'bg-indigo-50 text-indigo-600'}`}
+                  >
+                    View Paper
+                  </button>
+               )}
+               {referenceUrl && (
+                  <a 
+                    href={referenceUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-[9px] px-2 py-1 rounded font-bold uppercase tracking-widest mt-1 bg-slate-900 text-white flex items-center gap-1"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-2 w-2" viewBox="0 0 20 20" fill="currentColor"><path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z" /><path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z" /></svg>
+                    Full Screen Paper
+                  </a>
+               )}
+             </div>
           </div>
         </div>
         <div className="flex items-center gap-6">
@@ -441,90 +432,98 @@ const StudentView: React.FC<StudentViewProps> = ({ papers, activeStudent, onLogi
             type="button"
             onClick={handleManualSubmitClick} 
             disabled={isSubmitting}
-            className={`
-              px-6 py-3 rounded-xl font-black uppercase text-[10px] transition-all shadow-lg active:scale-95 z-50 relative flex items-center gap-2
-              ${isSubmitting ? 'bg-slate-400 text-slate-200 cursor-wait' : 'bg-green-600 text-white hover:bg-green-700 shadow-green-200'}
-            `}
+            className="px-6 py-3 rounded-xl font-black uppercase text-[10px] bg-green-600 text-white hover:bg-green-700 shadow-lg shadow-green-100 transition-all active:scale-95"
           >
-            {isSubmitting ? 'Sending...' : 'Finish Exam'}
+            Finish Exam
           </button>
         </div>
       </div>
 
       <div className={`flex flex-col md:flex-row flex-1 overflow-hidden relative`}>
-         {referenceUrl && (
-            <div className="flex-1 bg-slate-800 p-4 hidden md:block border-r border-slate-200 overflow-hidden relative group">
-              <ReferenceViewer />
-              <div className="absolute top-6 right-6 bg-black/50 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                {isPDFImage ? 'Image Reference' : 'PDF Reference'}
-              </div>
+         {/* Split Screen Paper Viewer */}
+         <div className="flex-1 bg-slate-800 p-4 hidden md:block border-r border-slate-200 overflow-hidden relative group">
+            <div className="absolute top-6 left-6 z-10 bg-indigo-600 text-white text-[10px] font-black px-3 py-1.5 rounded-full shadow-lg uppercase tracking-widest border border-white/20">
+               Question Paper Reference
             </div>
-         )}
+            <div className="w-full h-full rounded-2xl overflow-hidden bg-slate-900/50 backdrop-blur-sm">
+               <ReferenceViewer />
+            </div>
+         </div>
          
+         {/* Mobile Paper Overlay */}
          {showMobileReference && referenceUrl && (
            <div className="fixed inset-0 z-[60] bg-slate-900 flex flex-col md:hidden">
              <div className="flex items-center justify-between p-4 bg-slate-800 text-white shrink-0">
-               <h3 className="font-bold">Question Paper Reference</h3>
+               <h3 className="font-bold">Exam Reference</h3>
                <button onClick={() => setShowMobileReference(false)} className="bg-white/10 p-2 rounded-full"><svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
              </div>
-             <div className="flex-1 p-2 overflow-auto bg-black">
+             <div className="flex-1 overflow-hidden bg-black">
                <ReferenceViewer />
              </div>
            </div>
          )}
 
+         {/* Question Area */}
          <div className={`flex-1 overflow-y-auto p-4 md:p-8 ${isKeyboardOpen ? 'pb-[340px]' : 'pb-24'}`}>
-            <div className="max-w-3xl mx-auto bg-white rounded-3xl p-6 md:p-8 border border-slate-200 shadow-sm">
-               <div className="flex justify-between items-center mb-2">
-                 <p className="text-xs font-black text-indigo-600 uppercase">Question {currentQuestionIndex+1}</p>
-                 <span className="bg-slate-100 text-slate-500 px-2 py-1 rounded text-[10px] font-bold uppercase">{currentQ.points} Points</span>
-               </div>
-               
-               <h3 className="text-xl md:text-2xl font-medium text-slate-800 mb-6 whitespace-pre-wrap leading-relaxed">{currentQ.text}</h3>
-               
-               {currentQ.image && (
-                 <div className="mb-8 group relative inline-block">
-                   <p className="text-[10px] font-black uppercase text-slate-400 mb-2">Reference Diagram</p>
-                   <img src={currentQ.image} alt="Question Diagram" className="max-w-full max-h-[500px] w-auto rounded-2xl border border-slate-200 shadow-sm object-contain bg-slate-50" />
-                 </div>
-               )}
+            <div className="max-w-3xl mx-auto bg-white rounded-3xl p-6 md:p-10 border border-slate-200 shadow-sm relative overflow-hidden">
+               {/* Watermark/Background decoration */}
+               <div className="absolute -top-12 -right-12 w-48 h-48 bg-indigo-50 rounded-full blur-3xl opacity-50 -z-0"></div>
 
-               {currentQ.type === 'mcq' && currentQ.options ? (
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                   {currentQ.options.map((opt, i) => (
-                     <button key={i} onClick={() => updateAnswer(opt)} className={`p-5 rounded-2xl border-2 text-left font-bold transition-all ${currentAnswer?.answerText === opt ? 'bg-indigo-50 border-indigo-600 shadow-md scale-[1.01]' : 'bg-slate-50 border-transparent hover:bg-slate-100'}`}>
-                       <div className="flex items-center gap-3">
-                         <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-[10px] ${currentAnswer?.answerText === opt ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-slate-300 text-slate-400'}`}>
-                           {String.fromCharCode(65 + i)}
+               <div className="relative z-10">
+                 <div className="flex justify-between items-center mb-6">
+                   <p className="text-xs font-black text-indigo-600 uppercase tracking-[0.2em]">Section A • Question {currentQuestionIndex+1}</p>
+                   <span className="bg-indigo-50 text-indigo-600 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest">{currentQ.points} Points</span>
+                 </div>
+                 
+                 <h3 className="text-xl md:text-2xl font-bold text-slate-800 mb-8 whitespace-pre-wrap leading-relaxed">
+                   {currentQ.text}
+                 </h3>
+                 
+                 {currentQ.image && (
+                   <div className="mb-8 p-2 bg-slate-50 border border-slate-100 rounded-3xl">
+                     <img src={currentQ.image} alt="Question Diagram" className="w-full h-auto rounded-2xl border border-slate-200 shadow-sm object-contain bg-white max-h-[400px]" />
+                   </div>
+                 )}
+
+                 {currentQ.type === 'mcq' && currentQ.options ? (
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                     {currentQ.options.map((opt, i) => (
+                       <button key={i} onClick={() => updateAnswer(opt)} className={`p-6 rounded-2xl border-2 text-left font-bold transition-all ${currentAnswer?.answerText === opt ? 'bg-indigo-50 border-indigo-600 shadow-md' : 'bg-slate-50 border-transparent hover:bg-slate-100'}`}>
+                         <div className="flex items-center gap-4">
+                           <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center text-xs ${currentAnswer?.answerText === opt ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-slate-300 text-slate-400'}`}>
+                             {String.fromCharCode(65 + i)}
+                           </div>
+                           <span className="text-lg">{opt || `Option ${i + 1}`}</span>
                          </div>
-                         <span>{opt || `Option ${i + 1}`}</span>
-                       </div>
-                     </button>
-                   ))}
-                 </div>
-               ) : (
-                 <textarea 
-                   value={currentAnswer?.answerText || ''} 
-                   onFocus={() => setIsKeyboardOpen(true)}
-                   onChange={(e) => updateAnswer(e.target.value)}
-                   className="w-full min-h-[200px] p-6 rounded-2xl border border-slate-200 bg-slate-50 font-mono text-xl focus:ring-4 focus:ring-indigo-500/10 outline-none"
-                   placeholder="Type your answer here..."
-                 />
-               )}
+                       </button>
+                     ))}
+                   </div>
+                 ) : (
+                   <div className="space-y-4">
+                     <textarea 
+                       value={currentAnswer?.answerText || ''} 
+                       onFocus={() => setIsKeyboardOpen(true)}
+                       onChange={(e) => updateAnswer(e.target.value)}
+                       className="w-full min-h-[250px] p-8 rounded-[2rem] border-2 border-slate-100 bg-slate-50 font-mono text-xl focus:ring-8 focus:ring-indigo-500/5 focus:border-indigo-500 outline-none transition-all"
+                       placeholder="Write your answer here. Use the specialized keyboard for symbols..."
+                     />
+                   </div>
+                 )}
 
-               <div className="mt-8 pt-8 border-t border-slate-100 flex items-center justify-between">
-                  <label className="flex items-center gap-3 bg-slate-50 border-2 border-dashed border-slate-200 px-6 py-3 rounded-xl cursor-pointer hover:bg-slate-100 transition-colors">
-                     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /></svg>
-                     <span className="text-xs font-black uppercase tracking-widest text-slate-500">Capture Work</span>
-                     <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handleImageUpload} />
-                  </label>
-                  {currentAnswer?.imageUri && <div className="flex items-center gap-2 animate-in fade-in slide-in-from-right"><img src={currentAnswer.imageUri} className="w-12 h-12 object-cover rounded-lg border border-slate-200" /><span className="text-[9px] font-black uppercase text-green-600 bg-green-50 px-2 py-1 rounded">Attached</span></div>}
+                 <div className="mt-8 pt-8 border-t border-slate-100 flex flex-wrap items-center justify-between gap-4">
+                    <label className="flex items-center gap-3 bg-slate-50 border border-slate-200 px-6 py-4 rounded-2xl cursor-pointer hover:bg-slate-100 transition-colors shadow-sm active:scale-95 transition-all">
+                       <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /></svg>
+                       <span className="text-xs font-black uppercase tracking-widest text-slate-500">Capture Hand-drawn Work</span>
+                       <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handleImageUpload} />
+                    </label>
+                    {currentAnswer?.imageUri && <div className="flex items-center gap-3 animate-in slide-in-from-right"><img src={currentAnswer.imageUri} className="w-14 h-14 object-cover rounded-xl border-2 border-indigo-200 shadow-md" /><span className="text-[10px] font-black uppercase text-green-600 bg-green-50 px-3 py-1.5 rounded-lg border border-green-100">Attachment Ready</span></div>}
+                 </div>
                </div>
             </div>
 
-            <div className="max-w-3xl mx-auto flex justify-between mt-8">
-               <button disabled={currentQuestionIndex === 0} onClick={() => setCurrentQuestionIndex(prev => prev - 1)} className="bg-white border border-slate-200 px-8 py-4 rounded-xl font-black uppercase text-xs hover:bg-slate-50 disabled:opacity-50 transition-all">Prev</button>
-               <button disabled={currentQuestionIndex === activeSession?.paper.questions.length! - 1} onClick={() => setCurrentQuestionIndex(prev => prev + 1)} className="bg-indigo-600 text-white px-8 py-4 rounded-xl font-black uppercase text-xs hover:bg-indigo-700 disabled:opacity-50 transition-all">Next</button>
+            <div className="max-w-3xl mx-auto flex justify-between mt-10">
+               <button disabled={currentQuestionIndex === 0} onClick={() => setCurrentQuestionIndex(prev => prev - 1)} className="bg-white border border-slate-200 px-10 py-4 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-slate-50 disabled:opacity-30 transition-all shadow-sm">Previous</button>
+               <button disabled={currentQuestionIndex === activeSession?.paper.questions.length! - 1} onClick={() => setCurrentQuestionIndex(prev => prev + 1)} className="bg-indigo-600 text-white px-10 py-4 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-indigo-700 disabled:opacity-30 transition-all shadow-xl shadow-indigo-100">Next Question</button>
             </div>
          </div>
       </div>
