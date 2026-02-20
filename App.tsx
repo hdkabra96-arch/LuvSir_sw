@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import TeacherView from './components/TeacherView';
 import StudentView from './components/StudentView';
 import TeacherLogin from './components/TeacherLogin';
-import { UserRole, QuestionPaper, StudentProfile, Instructor, Submission } from './types';
+import { UserRole, QuestionPaper, StudentProfile, Submission } from './types';
 import { supabase } from './lib/supabase';
 
 const App: React.FC = () => {
@@ -27,7 +27,7 @@ const App: React.FC = () => {
         if (paperError) throw paperError;
 
         if (dbPapers) {
-           const formattedPapers: QuestionPaper[] = dbPapers.map(p => ({
+           const formattedPapers: QuestionPaper[] = dbPapers.map((p: any) => ({
              id: p.id,
              title: p.title,
              subject: p.subject,
@@ -44,7 +44,7 @@ const App: React.FC = () => {
         }
 
         const { data: dbSubs } = await supabase.from('submissions').select('*').order('submitted_at', { ascending: false });
-        if (dbSubs) setSubmissions(dbSubs.map(s => ({ ...s, paperId: s.paper_id, paperTitle: s.paper_title, studentId: s.student_id, studentName: s.student_name, studentGrade: s.student_grade, submittedAt: s.submitted_at })));
+        if (dbSubs) setSubmissions(dbSubs.map((s: any) => ({ ...s, paperId: s.paper_id, paperTitle: s.paper_title, studentId: s.student_id, studentName: s.student_name, studentGrade: s.student_grade, submittedAt: s.submitted_at })));
 
         const { data: dbStudents } = await supabase.from('students').select('*');
         if (dbStudents) setStudents(dbStudents);
@@ -198,7 +198,7 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <nav className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between sticky top-0 z-50">
+      <nav className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between sticky top-0 z-50 print:hidden">
         <div className="flex items-center gap-2 cursor-pointer" onClick={handleLogout}><div className="bg-indigo-600 p-1.5 rounded-lg text-white"><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13" /></svg></div><span className="text-xl font-black">EduAssess <span className="text-indigo-600">Pro</span></span></div>
         <div className="flex items-center gap-4">{activeStudent && <div className="text-right hidden sm:block"><p className="text-[10px] font-bold text-slate-400 uppercase">Class {activeStudent.grade}</p><p className="text-sm font-bold text-slate-700">{activeStudent.name}</p></div>}<button onClick={handleLogout} className="p-2 hover:bg-slate-100 rounded-full text-slate-500"><svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg></button></div>
       </nav>

@@ -118,14 +118,22 @@ const SpecializedKeyboard: React.FC<SpecializedKeyboardProps> = ({
                 </button>
               ))}
               {rowIndex === 2 && (
-                <button
-                  onClick={onDelete}
-                  className="w-20 h-11 md:h-14 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-xl flex items-center justify-center shadow-md border border-red-500/10 transition-colors"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2M3 12l6.414 6.414a2 2 0 001.414.586H19a2 2 0 002-2V7a2 2 0 00-2-2h-8.172a2 2 0 00-1.414.586L3 12z" />
-                  </svg>
-                </button>
+                <>
+                  <button
+                    onClick={onDelete}
+                    className="w-20 h-11 md:h-14 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-xl flex items-center justify-center shadow-md border border-red-500/10 transition-colors"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2M3 12l6.414 6.414a2 2 0 001.414.586H19a2 2 0 002-2V7a2 2 0 00-2-2h-8.172a2 2 0 00-1.414.586L3 12z" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={onClear}
+                    className="w-16 h-11 md:h-14 bg-slate-800 hover:bg-slate-700 text-slate-400 rounded-xl flex items-center justify-center shadow-md border border-white/5 transition-colors text-[10px] font-black uppercase tracking-tighter"
+                  >
+                    CLR
+                  </button>
+                </>
               )}
             </div>
           ))}
