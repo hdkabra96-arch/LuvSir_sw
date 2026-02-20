@@ -325,7 +325,16 @@ const StudentView: React.FC<StudentViewProps> = ({ papers, activeStudent, onLogi
           <div className="bg-indigo-600 text-white w-10 h-10 rounded-lg flex items-center justify-center font-black">{currentQuestionIndex + 1}</div>
           <div>
              <h2 className="text-lg font-black text-slate-900 leading-tight">{activeSession?.paper.title}</h2>
-             {referenceUrl && <a href={referenceUrl} target="_blank" rel="noopener noreferrer" className="text-[9px] px-2 py-1 rounded font-bold uppercase tracking-widest bg-slate-900 text-white mt-1 inline-block">Full Page View</a>}
+             {referenceUrl && (
+               <a 
+                 href={referenceUrl} 
+                 target="_blank" 
+                 rel="noopener noreferrer" 
+                 className="text-[9px] px-2 py-1 rounded font-bold uppercase tracking-widest bg-slate-900 text-white mt-1 inline-block hover:scale-105 transition-transform"
+               >
+                 View Full Paper (New Tab)
+               </a>
+             )}
           </div>
         </div>
         <div className="flex items-center gap-6">
@@ -336,12 +345,18 @@ const StudentView: React.FC<StudentViewProps> = ({ papers, activeStudent, onLogi
 
       <div className="flex flex-col md:flex-row flex-1 overflow-hidden">
          {/* SPLIT VIEW PDF */}
-         <div className="flex-1 bg-slate-800 p-4 hidden md:block border-r border-slate-200 overflow-hidden">
+         <div className="flex-1 bg-slate-800 p-4 hidden md:block border-r border-slate-200 overflow-hidden relative">
+            <div className="absolute top-6 left-6 z-10 bg-indigo-600 text-white text-[10px] font-black px-3 py-1 rounded-full shadow-lg uppercase tracking-widest">
+              PDF Reference
+            </div>
             <div className="w-full h-full rounded-2xl overflow-hidden bg-white shadow-2xl relative">
                {referenceUrl ? (
-                 <object data={referenceUrl} type="application/pdf" className="w-full h-full">
-                    <iframe src={referenceUrl} className="w-full h-full" title="Exam Content" />
-                 </object>
+                 <iframe 
+                   key={referenceUrl} 
+                   src={referenceUrl} 
+                   className="w-full h-full border-none" 
+                   title="Exam Content" 
+                 />
                ) : (
                  <div className="flex items-center justify-center h-full text-slate-400 font-bold uppercase tracking-widest">No Reference Paper Attached</div>
                )}
@@ -356,7 +371,7 @@ const StudentView: React.FC<StudentViewProps> = ({ papers, activeStudent, onLogi
                <button onClick={() => setShowMobileReference(false)} className="p-2"><svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
              </div>
              <div className="flex-1 overflow-hidden bg-white">
-               <iframe src={referenceUrl} className="w-full h-full" title="Mobile Reference" />
+               <iframe src={referenceUrl} className="w-full h-full border-none" title="Mobile Reference" />
              </div>
            </div>
          )}
