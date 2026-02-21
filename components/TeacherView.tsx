@@ -81,7 +81,8 @@ const TeacherView: React.FC<TeacherViewProps> = ({ onPaperCreated, onPaperDelete
   };
 
   return (
-    <div className="max-w-6xl mx-auto p-6 print:hidden">
+    <>
+      <div className="max-w-6xl mx-auto p-6 print:hidden">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-black">Teacher Dashboard</h1>
         <button onClick={() => setShowCreator(true)} className="bg-indigo-600 text-white px-8 py-3 rounded-2xl font-black text-xs uppercase shadow-xl hover:bg-indigo-700">New Exam</button>
@@ -230,8 +231,10 @@ const TeacherView: React.FC<TeacherViewProps> = ({ onPaperCreated, onPaperDelete
         </div>
       )}
 
+      </div>
+
       {selectedSubmission && (
-        <div className="hidden print:block bg-white p-10 text-slate-900 min-h-screen">
+        <div className="hidden print:block absolute top-0 left-0 w-full bg-white z-[9999] p-10 text-slate-900">
           <div className="border-b-4 border-indigo-600 pb-6 mb-10">
             <h1 className="text-4xl font-black mb-2 uppercase tracking-tighter">Examination Result</h1>
             <div className="flex justify-between items-end">
@@ -275,7 +278,7 @@ const TeacherView: React.FC<TeacherViewProps> = ({ onPaperCreated, onPaperDelete
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 };
 
