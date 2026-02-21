@@ -28,6 +28,24 @@ const TeacherLogin: React.FC<TeacherLoginProps> = ({ onAuthenticated, onCancel, 
         if (!error && count === 0) {
           setIsSetupMode(true);
           setUsername('admin');
+        } else {
+          // Check if we should auto-update the admin password as requested
+          const { data: adminUser } = await supabase
+            .from('instructors')
+            .select('*')
+            .eq('username', 'admin')
+            .single();
+          
+          if (adminUser) {
+            const newHash = await hashPassword('Luvsiracharya@123');
+            if (adminUser.password_hash !== newHash) {
+              console.log("Updating admin password in database...");
+              await supabase
+                .from('instructors')
+                .update({ password_hash: newHash })
+                .eq('username', 'admin');
+            }
+          }
         }
       } catch (err) {
         console.error("Connection check failed:", err);
@@ -53,14 +71,14 @@ const TeacherLogin: React.FC<TeacherLoginProps> = ({ onAuthenticated, onCancel, 
     // --- OFFLINE BYPASS ---
     if (isOffline) {
         setLoading(false);
-        if (username === 'admin' && password === 'admin') {
+        if (username === 'admin' && password === 'Luvsiracharya@123') {
             onAuthenticated({
                 username: 'admin',
                 passwordHash: 'offline_mode_hash',
                 lastLogin: new Date().toISOString()
             });
         } else {
-            setError('Offline Mode: Use username "admin" and password "admin".');
+            setError('Offline Mode: Use username "admin" and password "Luvsiracharya@123".');
         }
         return;
     }
@@ -141,7 +159,7 @@ const TeacherLogin: React.FC<TeacherLoginProps> = ({ onAuthenticated, onCancel, 
           </h1>
           <p className="text-slate-500 text-sm font-medium mt-2">
             {isOffline 
-               ? <span className="text-amber-600 font-bold">Offline Mode: Use admin / admin</span>
+               ? <span className="text-amber-600 font-bold">Offline Mode: Use admin / Luvsiracharya@123</span>
                : (isSetupMode 
                   ? 'Set your username and password to initialize the assessment database.' 
                   : 'Enter your credentials to manage papers and class records.')
@@ -176,7 +194,7 @@ const TeacherLogin: React.FC<TeacherLoginProps> = ({ onAuthenticated, onCancel, 
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 outline-none font-bold"
-              placeholder={isOffline ? "admin" : "Enter password"}
+              placeholder={isOffline ? "Luvsiracharya@123" : "Enter password"}
             />
           </div>
 
