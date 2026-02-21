@@ -23,6 +23,7 @@ export interface Question {
   points: number;
   options?: string[];
   image?: string; // Base64 image data for diagrams
+  requiresImage?: boolean;
 }
 
 export interface QuestionPaper {

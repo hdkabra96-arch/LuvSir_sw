@@ -171,7 +171,13 @@ const TeacherView: React.FC<TeacherViewProps> = ({ onPaperCreated, onPaperDelete
                       <div key={q.id} className="p-6 bg-slate-50 border border-slate-200 rounded-2xl relative">
                          <button onClick={()=>removeQuestion(q.id)} className="absolute top-4 right-4 text-slate-300 hover:text-red-500"><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6" /></svg></button>
                          <textarea value={q.text} onChange={e=>setQuestions(questions.map(qt=>qt.id===q.id?{...qt, text:e.target.value}:qt))} className="w-full p-4 border border-slate-200 rounded-xl mb-4 text-sm" placeholder="Question text..." />
-                         <div className="flex justify-end gap-2 items-center"><span className="text-[10px] font-black uppercase text-slate-400">Points:</span><input type="number" value={q.points} onChange={e=>setQuestions(questions.map(qt=>qt.id===q.id?{...qt, points: parseInt(e.target.value)}:qt))} className="w-16 p-2 border border-slate-200 rounded-lg text-center font-bold" /></div>
+                         <div className="flex justify-between items-center">
+                            <label className="flex items-center gap-2 cursor-pointer group">
+                               <input type="checkbox" checked={q.requiresImage} onChange={e=>setQuestions(questions.map(qt=>qt.id===q.id?{...qt, requiresImage: e.target.checked}:qt))} className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" />
+                               <span className="text-[10px] font-black uppercase text-slate-400 group-hover:text-slate-600 transition-colors">Requires Image Answer</span>
+                            </label>
+                            <div className="flex gap-2 items-center"><span className="text-[10px] font-black uppercase text-slate-400">Points:</span><input type="number" value={q.points} onChange={e=>setQuestions(questions.map(qt=>qt.id===q.id?{...qt, points: parseInt(e.target.value)}:qt))} className="w-16 p-2 border border-slate-200 rounded-lg text-center font-bold" /></div>
+                         </div>
                       </div>
                    ))}
                 </div>

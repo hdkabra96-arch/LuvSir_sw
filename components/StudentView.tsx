@@ -209,6 +209,25 @@ const StudentView: React.FC<StudentViewProps> = ({ papers, activeStudent, onLogi
     });
   }
 
+  const removeImage = () => {
+    if (!activeSession) return;
+    const currentQ = activeSession.paper.questions[currentQuestionIndex];
+    setActiveSession(prev => {
+       if (!prev) return null;
+       return {
+         ...prev,
+         answers: {
+           ...prev.answers,
+           [currentQ.id]: {
+             ...prev.answers[currentQ.id],
+             questionId: currentQ.id,
+             imageUri: undefined
+           }
+         }
+       };
+    });
+  }
+
   const handleKeyPress = (char: string) => {
     const currentAnswerText = activeSession?.answers[activeSession.paper.questions[currentQuestionIndex].id]?.answerText || '';
     updateAnswer(currentAnswerText + char);
@@ -407,14 +426,38 @@ const StudentView: React.FC<StudentViewProps> = ({ papers, activeStudent, onLogi
                  />
                )}
 
-               <div className="mt-8 pt-8 border-t border-slate-100 flex justify-between items-center">
-                  <label className="flex items-center gap-3 bg-slate-50 border border-slate-200 px-6 py-4 rounded-2xl cursor-pointer hover:bg-slate-100">
-                     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /></svg>
-                     <span className="text-xs font-black uppercase text-slate-500">Capture Workspace</span>
-                     <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handleImageUpload} />
-                  </label>
-                  {currentAnswer?.imageUri && <img src={currentAnswer.imageUri} className="w-14 h-14 object-cover rounded-xl border-2 border-green-200" alt="Work" />}
-               </div>
+                <div className="mt-8 pt-8 border-t border-slate-100">
+                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                      <div className="flex flex-col gap-1">
+                         <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-black uppercase text-indigo-600 tracking-widest">Visual Answer</span>
+                            {currentQ.requiresImage && <span className="text-[8px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded font-black uppercase">Required</span>}
+                         </div>
+                         <p className="text-xs text-slate-400 font-medium">Upload a photo of your handwritten work or diagrams.</p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        {!currentAnswer?.imageUri ? (
+                          <label className="flex items-center gap-3 bg-indigo-50 border border-indigo-100 px-6 py-3 rounded-2xl cursor-pointer hover:bg-indigo-100 transition-colors group">
+                             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-indigo-600 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /></svg>
+                             <span className="text-[10px] font-black uppercase text-indigo-600">Upload Image</span>
+                             <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+                          </label>
+                        ) : (
+                          <div className="flex items-center gap-3">
+                             <div className="relative group">
+                                <img src={currentAnswer.imageUri} className="w-16 h-16 object-cover rounded-xl border-2 border-indigo-200 shadow-md cursor-zoom-in" alt="Work" onClick={() => window.open(currentAnswer.imageUri, '_blank')} />
+                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl flex items-center justify-center">
+                                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" /></svg>
+                                </div>
+                             </div>
+                             <button onClick={removeImage} className="p-3 bg-red-50 text-red-500 rounded-xl hover:bg-red-100 transition-colors" title="Remove Image">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                             </button>
+                          </div>
+                        )}
+                      </div>
+                   </div>
+                </div>
             </div>
 
             <div className="max-w-3xl mx-auto flex justify-between mt-10">

@@ -16,11 +16,6 @@ const TeacherLogin: React.FC<TeacherLoginProps> = ({ onAuthenticated, onCancel, 
   const [loading, setLoading] = useState(false);
   const [isSetupMode, setIsSetupMode] = useState(false);
   
-  // Reset Modal State
-  const [showResetModal, setShowResetModal] = useState(false);
-  const [resetUsername, setResetUsername] = useState('admin');
-  const [resetPassword, setResetPassword] = useState('admin@123'); // Pre-fill with requested default
-
   React.useEffect(() => {
     if (isOffline) return; // Skip checks if offline
 
@@ -48,94 +43,6 @@ const TeacherLogin: React.FC<TeacherLoginProps> = ({ onAuthenticated, onCancel, 
     return Array.from(new Uint8Array(hash))
       .map(b => b.toString(16).padStart(2, '0'))
       .join('');
-  };
-
-  // --- NEW FUNCTION: Force Create Default Admin ---
-  const handleForceCreateAdmin = async () => {
-    if (isOffline) return alert("Feature unavailable in Offline Mode.");
-    
-    setLoading(true);
-    try {
-        const defaultUser = 'admin';
-        const defaultPass = 'admin@123';
-        const hashedPassword = await hashPassword(defaultPass);
-
-        const newInstructor = {
-            username: defaultUser,
-            password_hash: hashedPassword,
-            last_login: new Date().toISOString()
-        };
-
-        const { error: upsertError } = await supabase
-            .from('instructors')
-            .upsert(newInstructor, { onConflict: 'username' })
-            .select();
-
-        if (upsertError) throw upsertError;
-
-        alert(`✅ SUCCESS!\n\nUser: ${defaultUser}\nPassword: ${defaultPass}\n\nCreated successfully in database.`);
-        setUsername(defaultUser);
-        setPassword(defaultPass);
-        
-    } catch (err: any) {
-        console.error("Force Admin Error:", err);
-        if (err.message?.includes('policy') || err.code === '42501') {
-          alert("❌ FAILED: Permission Denied.\n\nYou must go to Supabase Dashboard -> Table Editor -> instructors.\nClick 'Edit Policies' and enable INSERT/UPDATE/SELECT for all.");
-      } else {
-          alert("❌ Error: " + err.message);
-      }
-    } finally {
-        setLoading(false);
-    }
-  };
-
-  const handleDirectReset = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (isOffline) return alert("Reset unavailable in Offline Mode.");
-    
-    if (!resetUsername || !resetPassword) {
-        alert("Please fill in both fields.");
-        return;
-    }
-    
-    if (!confirm("⚠️ CONFIRM RESET ⚠️\n\nThis will update the password for user '" + resetUsername + "'. If this user does not exist, it will be created.\n\nProceed to update database?")) return;
-
-    setLoading(true);
-    try {
-      const hashedPassword = await hashPassword(resetPassword);
-
-      const newInstructor = {
-          username: resetUsername,
-          password_hash: hashedPassword,
-          last_login: new Date().toISOString()
-      };
-      
-      const { error: upsertError } = await supabase
-        .from('instructors')
-        .upsert(newInstructor, { onConflict: 'username' })
-        .select();
-
-      if (upsertError) throw upsertError;
-
-      onAuthenticated({
-          username: resetUsername,
-          passwordHash: hashedPassword,
-          lastLogin: newInstructor.last_login
-      });
-
-    } catch (err: any) {
-      console.error("Reset Error:", err);
-      if (err.message?.includes('policy') || err.code === '42501') {
-          alert("Update Failed: PERMISSION DENIED.\n\nPlease check your Supabase RLS policies. You need INSERT/UPDATE permissions on the 'instructors' table.");
-      } else if (err.message?.includes('constraint')) {
-          alert("Update Failed: " + err.message + "\n\nEnsure 'username' column is unique in your database schema.");
-      } else {
-          alert("Database Error: " + (err.message || "Unknown Error"));
-      }
-    } finally {
-      setLoading(false);
-      setShowResetModal(false);
-    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -280,85 +187,11 @@ const TeacherLogin: React.FC<TeacherLoginProps> = ({ onAuthenticated, onCancel, 
               isSetupMode ? 'bg-indigo-600 hover:bg-indigo-700 text-white' : 'bg-slate-900 hover:bg-black text-white'
             }`}
           >
-            {loading && !showResetModal && <div className="w-4 h-4 border-2 border-white/50 border-t-transparent rounded-full animate-spin"></div>}
+            {loading && <div className="w-4 h-4 border-2 border-white/50 border-t-transparent rounded-full animate-spin"></div>}
             {isSetupMode ? 'Initialize Database' : (isOffline ? 'Enter Demo Mode' : 'Secure Login')}
           </button>
         </form>
-
-        {!isSetupMode && !isOffline && (
-          <div className="mt-8 pt-8 border-t border-slate-100 text-center space-y-4">
-            <button 
-              type="button"
-              onClick={() => setShowResetModal(true)}
-              className="block w-full text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-indigo-500 transition-colors"
-            >
-              Custom Reset
-            </button>
-            
-            <button
-               type="button"
-               onClick={handleForceCreateAdmin}
-               className="inline-block px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-indigo-100 transition-colors"
-            >
-               Quick Fix: Create 'admin' / 'admin@123'
-            </button>
-          </div>
-        )}
       </div>
-
-      {/* Reset Modal Popup */}
-      {showResetModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
-           <div className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl scale-100 animate-in zoom-in-95 duration-200">
-              <h3 className="text-xl font-black text-slate-900 mb-2">Reset Access</h3>
-              <p className="text-xs text-slate-500 mb-6 leading-relaxed">
-                 Enter your desired credentials. This will <strong className="text-indigo-600">create or update</strong> the account in the database directly.
-              </p>
-              
-              <form onSubmit={handleDirectReset} className="space-y-4">
-                 <div>
-                    <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">New Username</label>
-                    <input 
-                      type="text" 
-                      required
-                      value={resetUsername}
-                      onChange={(e) => setResetUsername(e.target.value)}
-                      className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none"
-                    />
-                 </div>
-                 <div>
-                    <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">New Password</label>
-                    <input 
-                      type="password" 
-                      required
-                      value={resetPassword}
-                      onChange={(e) => setResetPassword(e.target.value)}
-                      className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none"
-                      placeholder="Min 6 characters"
-                    />
-                 </div>
-                 
-                 <div className="flex gap-2 mt-6">
-                    <button 
-                      type="button" 
-                      onClick={() => setShowResetModal(false)}
-                      className="flex-1 bg-slate-100 text-slate-600 py-3 rounded-xl font-bold text-xs hover:bg-slate-200"
-                    >
-                      Cancel
-                    </button>
-                    <button 
-                      type="submit"
-                      disabled={loading}
-                      className="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-bold text-xs hover:bg-indigo-700 shadow-lg shadow-indigo-200 flex items-center justify-center gap-2"
-                    >
-                      {loading && <div className="w-3 h-3 border-2 border-white/50 border-t-white rounded-full animate-spin"></div>}
-                      Update DB
-                    </button>
-                 </div>
-              </form>
-           </div>
-        </div>
-      )}
     </div>
   );
 };
