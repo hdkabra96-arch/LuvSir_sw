@@ -357,6 +357,34 @@ const StudentView: React.FC<StudentViewProps> = ({ papers, activeStudent, onLogi
           </div>
         </div>
         <div className="flex items-center gap-6">
+          <div className="flex items-center bg-slate-100 rounded-xl p-1 mr-2">
+             <button 
+               disabled={currentQuestionIndex === 0} 
+               onClick={() => setCurrentQuestionIndex(prev => prev - 1)} 
+               className="p-2 hover:bg-white rounded-lg transition-colors disabled:opacity-30 text-slate-600"
+               title="Previous Question"
+             >
+               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+             </button>
+             <div className="px-3 text-[10px] font-black text-slate-400 uppercase tracking-widest border-x border-slate-200">
+                {currentQuestionIndex + 1} / {activeSession?.paper.questions.length}
+             </div>
+             <button 
+               disabled={currentQuestionIndex === activeSession?.paper.questions.length! - 1} 
+               onClick={() => setCurrentQuestionIndex(prev => prev + 1)} 
+               className="p-2 hover:bg-white rounded-lg transition-colors disabled:opacity-30 text-slate-600"
+               title="Next Question"
+             >
+               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+             </button>
+          </div>
+          <button 
+            onClick={() => setIsKeyboardOpen(!isKeyboardOpen)} 
+            className={`p-3 rounded-xl transition-all ${isKeyboardOpen ? 'bg-indigo-600 text-white shadow-lg' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
+            title="Toggle Digital Input Tools"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+          </button>
           <p className={`text-xl font-mono font-black tabular-nums ${timeLeft < 300 ? 'text-red-500 animate-pulse' : ''}`}>{formatTime(timeLeft)}</p>
           <button onClick={handleManualSubmitClick} className="px-6 py-3 rounded-xl font-black uppercase text-[10px] bg-green-600 text-white">Finish Exam</button>
         </div>
@@ -397,11 +425,12 @@ const StudentView: React.FC<StudentViewProps> = ({ papers, activeStudent, onLogi
 
          {/* QUESTION PANEL */}
          <div className={`flex-1 overflow-y-auto p-4 md:p-8 ${isKeyboardOpen ? 'pb-[340px]' : 'pb-24'}`}>
-            <div className="max-w-3xl mx-auto bg-white rounded-3xl p-8 border border-slate-200 shadow-sm">
-               <div className="flex justify-between items-center mb-6">
-                  <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Question {currentQuestionIndex+1} of {activeSession?.paper.questions.length}</p>
-                  <button onClick={() => setShowMobileReference(true)} className="md:hidden text-[9px] font-black uppercase bg-indigo-50 text-indigo-600 px-3 py-1 rounded-lg">View Source Paper</button>
-               </div>
+            <div className="max-w-3xl mx-auto">
+               <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm">
+                  <div className="flex justify-between items-center mb-6">
+                     <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Question {currentQuestionIndex+1} of {activeSession?.paper.questions.length}</p>
+                     <button onClick={() => setShowMobileReference(true)} className="md:hidden text-[9px] font-black uppercase bg-indigo-50 text-indigo-600 px-3 py-1 rounded-lg">View Source Paper</button>
+                  </div>
                
                <h3 className="text-xl md:text-2xl font-bold text-slate-800 mb-8 leading-relaxed">{currentQ.text}</h3>
                
@@ -460,9 +489,6 @@ const StudentView: React.FC<StudentViewProps> = ({ papers, activeStudent, onLogi
                 </div>
             </div>
 
-            <div className="max-w-3xl mx-auto flex justify-between mt-10">
-               <button disabled={currentQuestionIndex === 0} onClick={() => setCurrentQuestionIndex(prev => prev - 1)} className="bg-white border border-slate-200 px-10 py-4 rounded-2xl font-black uppercase text-xs tracking-widest disabled:opacity-30">Previous</button>
-               <button disabled={currentQuestionIndex === activeSession?.paper.questions.length! - 1} onClick={() => setCurrentQuestionIndex(prev => prev + 1)} className="bg-indigo-600 text-white px-10 py-4 rounded-2xl font-black uppercase text-xs tracking-widest disabled:opacity-30">Next</button>
             </div>
          </div>
       </div>
