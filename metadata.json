@@ -1,7 +1,0 @@
-{
-  "name": "LUV SIR Project",
-  "description": "A comprehensive classroom assessment platform featuring specialized keyboards for Math, Science, and Statistics, supporting both digital input and image-based submissions.",
-  "requestFramePermissions": [
-    "camera"
-  ]
-}
